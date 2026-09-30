@@ -4,6 +4,9 @@ World Monitor Security Assessment Platform - Main Application
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+import sys
 from app.config import settings
 from app.database import init_db
 from app.api import projects, scans, findings, evidence, reports
@@ -37,14 +40,17 @@ async def startup():
     init_db()
 
 
+if hasattr(sys, '_MEIPASS'):
+    frontend_build_dir = os.path.join(sys._MEIPASS, 'frontend', 'dist')
+else:
+    frontend_build_dir = os.path.join(os.path.dirname(__file__), "../../frontend/dist")
+
 @app.get("/")
-async def root():
-    return {
-        "name": settings.app_name,
-        "version": settings.app_version,
-        "safe_mode": settings.safe_mode,
-        "status": "running",
-    }
+async def serve_frontend():
+    return FileResponse(os.path.join(frontend_build_dir, "index.html"))
+
+# Mount static files (this will catch any remaining routes that aren't defined above)
+app.mount("/", StaticFiles(directory=frontend_build_dir), name="static")
 
 
 @app.get("/api/health")
